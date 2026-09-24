@@ -13,6 +13,7 @@ import sys
 
 from . import __version__
 from .model import Alarm, Repeat, new_id, weekday_from_name, weekday_to_name
+from .runner import Runner
 from .scheduler import next_fire
 from .store import Store
 
@@ -131,6 +132,13 @@ def cmd_disable(args: argparse.Namespace, store: Store) -> int:
     return _set_enabled(args, store, False)
 
 
+def cmd_run(args: argparse.Namespace, store: Store) -> int:
+    active = sum(1 for a in store.load() if a.enabled)
+    print(f"Alarm clock running — {active} active alarm(s). Press Ctrl-C to stop.")
+    Runner(store, snooze_minutes=args.snooze).run()
+    return 0
+
+
 # ---- parser + entry point ----
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="alarm", description="A command-line alarm clock.")
@@ -162,6 +170,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_dis = sub.add_parser("disable", help="Disable an alarm by id")
     p_dis.add_argument("id")
     p_dis.set_defaults(func=cmd_disable)
+
+    p_run = sub.add_parser("run", help="Run the scheduler; rings alarms until Ctrl-C")
+    p_run.add_argument("--snooze", type=int, default=9, help="Snooze minutes (default: 9)")
+    p_run.set_defaults(func=cmd_run)
 
     return parser
 
